@@ -1,4 +1,4 @@
-````markdown
+
 # Verificación Práctica de Aislamiento y Acceso Controlado entre Segmentos
 
 Este apartado tiene como propósito validar que la segmentación mediante VLANs y las reglas del firewall en pfSense cumplen correctamente con las políticas de acceso establecidas, garantizando el aislamiento entre departamentos y la comunicación segura cuando es requerida.
