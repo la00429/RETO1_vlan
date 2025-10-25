@@ -47,7 +47,70 @@ Cada sede contará con una máquina virtual pfSense configurada con **dos adapta
 - LAN: 192.168.20.1/24
 
 ---
+### 2.3 Diseño y Configuración de VLANs
 
+#### Teoría
+
+Una **VLAN (Virtual LAN)** es una red lógica creada dentro de una misma infraestructura física.
+Permite dividir una red física en varios segmentos independientes para mejorar la **seguridad**, el **rendimiento** y la **organización del tráfico**.
+En este laboratorio, las VLAN simulan diferentes **departamentos o áreas de trabajo** dentro de cada sede.
+
+#### Objetivos
+
+* Segmentar el tráfico interno por departamento.
+* Evitar la comunicación directa entre VLANs no autorizadas.
+* Permitir solo el acceso controlado a través del firewall pfSense.
+
+#### Ejemplo de diseño
+
+| Sede   | VLAN ID | Nombre         | Red asociada    | Propósito          |
+| ------ | ------- | -------------- | --------------- | ------------------ |
+| ACME A | 10      | Administración | 192.168.10.0/24 | Red administrativa |
+| ACME A | 20      | Ventas         | 192.168.20.0/24 | Red de vendedores  |
+| ACME B | 30      | Producción     | 192.168.30.0/24 | Red de producción  |
+| ACME B | 40      | Soporte        | 192.168.40.0/24 | Red técnica        |
+
+---
+
+### Configuración en pfSense
+
+1. Ir a **Interfaces → Assignments → VLANs → Add**.
+2. Configurar para cada VLAN:
+
+   * **Parent Interface:** la interfaz física LAN (por ejemplo, `em1` o `vtnet1`)
+   * **VLAN Tag:** el número de VLAN (10, 20, etc.)
+   * **Description:** nombre de la VLAN.
+3. Asignar las nuevas VLAN como interfaces separadas (ejemplo: `VLAN10`, `VLAN20`) en **Interfaces → Assignments**.
+4. En **Interfaces → [Nombre de la VLAN]**, habilitar y asignar una IP:
+
+   * VLAN10 → 192.168.10.1/24
+   * VLAN20 → 192.168.20.1/24
+5. Guardar y aplicar los cambios.
+
+---
+
+### Reglas de firewall para las VLANs
+
+1. Ir a **Firewall → Rules → [VLAN específica]**.
+2. Crear una regla que permita solo tráfico interno autorizado (por ejemplo, hacia el servidor VPN o un DNS local).
+3. Bloquear todo el tráfico no autorizado hacia otras VLANs.
+
+#### Ejemplo:
+
+| Acción | Protocolo | Origen     | Destino    | Descripción                         |
+| ------ | --------- | ---------- | ---------- | ----------------------------------- |
+| Pass   | TCP/UDP   | VLAN10 net | VPN Server | Permitir tráfico hacia el túnel     |
+| Block  | *         | VLAN10 net | VLAN20 net | Bloquear acceso entre VLANs locales |
+
+---
+
+### Verificación
+
+* Conectar un cliente en cada VLAN.
+* Probar que **no puede hacer ping** a otra VLAN (aislamiento correcto).
+* Probar que **sí puede acceder al otro sitio remoto** por la VPN (acceso controlado).
+
+---
 ## 3. Configuración de DDNS en la Sede ACME A (Servidor VPN)
 
 ### Teoría
