@@ -5,9 +5,17 @@
 El presente documento describe el procedimiento técnico para configurar una **VPN Site-to-Site** utilizando **pfSense** en un entorno virtualizado.  
 El objetivo es establecer una conexión segura entre dos redes privadas simuladas, representadas como **Sede ACME A** y **Sede ACME B**, garantizando el cifrado y la autenticación mediante el protocolo **OpenVPN en modo SSL/TLS**.
 
-Esta práctica permite comprender los principios de interconexión segura entre sedes, la gestión de certificados digitales, las reglas de firewall asociadas y la verificación del tráfico entre segmentos de red aislados.
+### Teoría
+Una **VPN site-to-site** permite la comunicación segura entre dos redes remotas a través de Internet, cifrando los datos transmitidos entre ellas.  
+El uso de **SSL/TLS (Secure Sockets Layer / Transport Layer Security)** garantiza que los datos viajen cifrados y autenticados mediante certificados digitales, evitando accesos no autorizados o interceptaciones.  
+pfSense es una solución de firewall y enrutador basada en FreeBSD, ampliamente utilizada para implementar VPNs de manera segura y administrable.
+
 ---
+
 ## 2. Requisitos del Entorno
+
+### Teoría
+Antes de la implementación, es necesario contar con un entorno virtualizado que simule dos redes independientes conectadas mediante Internet. Cada red representará una sede distinta, con su propio firewall pfSense.
 
 ### 2.1 Software Necesario
 
@@ -42,6 +50,14 @@ Cada sede contará con una máquina virtual pfSense configurada con **dos adapta
 
 ## 3. Configuración de DDNS en la Sede ACME A (Servidor VPN)
 
+### Teoría
+El **Dynamic DNS (DDNS)** es un servicio que asocia una dirección IP dinámica a un nombre de dominio. Esto permite acceder al servidor VPN utilizando un dominio (por ejemplo, `acmevpn.duckdns.org`), incluso si la IP pública cambia.  
+Solo **una de las sedes** —la que actúa como servidor VPN— necesita configurar DDNS, ya que el cliente se conectará a ese nombre.
+
+> **Nota:**  
+> Si se usa OpenVPN con SSL/TLS, el certificado del servidor debe coincidir con el nombre del DDNS configurado. De lo contrario, el cliente no podrá autenticar el servidor correctamente.
+
+### Procedimiento
 1. Ir a **Services → Dynamic DNS → Add**.
 2. Seleccionar el proveedor (por ejemplo, **DuckDNS** o **No-IP**).
 3. Configurar:
@@ -52,12 +68,15 @@ Cada sede contará con una máquina virtual pfSense configurada con **dos adapta
 4. Guardar y aplicar los cambios.
 5. Verificar que el estado indique **Updated successfully**.
 
-> **Importante:**  
-> El DDNS debe apuntar correctamente a la IP WAN del pfSense servidor, y el certificado SSL debe emitirse con ese mismo nombre de dominio.
-
 ---
 
 ## 4. Configuración en la Sede ACME A (Servidor OpenVPN)
+
+### Teoría
+El servidor OpenVPN será el encargado de aceptar las conexiones entrantes del cliente remoto (Sede B).  
+Se utilizará una **Autoridad Certificadora (CA)** interna para emitir certificados SSL/TLS, garantizando la identidad de ambos extremos de la VPN.
+
+---
 
 ### 4.1 Creación de la Autoridad Certificadora (CA)
 1. Ir a **System → Cert. Manager → CAs → Add**.
@@ -98,6 +117,12 @@ Cada sede contará con una máquina virtual pfSense configurada con **dos adapta
 
 ## 5. Configuración de la Sede ACME B (Cliente OpenVPN)
 
+### Teoría
+El cliente OpenVPN establece la conexión hacia el servidor usando el dominio del DDNS configurado.  
+Debe importar los certificados generados por la CA del servidor para autenticar la conexión SSL/TLS.
+
+---
+
 ### 5.1 Certificados de Cliente
 1. En la Sede A, ir a **System → Cert. Manager → Certificates → Add/Sign**:
    - **Descriptive Name:** ACME_Client_B
@@ -127,6 +152,13 @@ Cada sede contará con una máquina virtual pfSense configurada con **dos adapta
 
 ## 6. Reglas de Firewall y Ruteo
 
+### Teoría
+El firewall de pfSense controla todo el tráfico que pasa por el túnel VPN.  
+Se deben crear reglas específicas en las interfaces **OpenVPN** y **LAN** para permitir la comunicación entre las redes locales de ambas sedes.
+
+---
+
+### Procedimiento
 En ambas sedes:
 1. Ir a **Firewall → Rules → OpenVPN → Add**.
 2. Configurar:
@@ -142,6 +174,9 @@ En **Firewall → Rules → LAN**, agregar reglas que permitan tráfico hacia la
 ---
 
 ## 7. Verificación de Conectividad
+
+### Teoría
+Una vez configurado el túnel, se deben realizar pruebas de conectividad para confirmar que las redes pueden comunicarse de forma cifrada y estable.
 
 ### 7.1 Estado del túnel
 - En **Status → OpenVPN**, ambos lados deben mostrarse como **up**.
@@ -172,8 +207,3 @@ Si la respuesta es exitosa, el túnel VPN está operativo.
 | Estado “Connection failed” | Puertos bloqueados o error de NAT             | Verificar reenvío del puerto 1194 en el router físico o NAT virtual |
 
 ---
-
-```
-
-¿Deseas que le agregue una sección al final con **capturas esperadas** o **comandos de diagnóstico (como netstat, traceroute, etc.)** para completar el informe?
-```
